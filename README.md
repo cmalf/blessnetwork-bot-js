@@ -11,6 +11,11 @@ A Node.js script to automate running blessnetwork node.
 - Connection through Proxy
 - Running Multiple NodeID Devices (not multiple account)
 
+## ᝰ.ᐟ Note 
+
+- Update From Discord
+- 5-node limit(max) per account
+
 ## 🔓 Register 
 
 - If you don't have a bless account yet, SignUp Here [bless.network](https://bless.network/dashboard?ref=SFYQDB)
