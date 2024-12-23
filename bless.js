@@ -78,8 +78,51 @@ async function pingSession(nodeId, proxy) {
         await axios.post(url, null, { headers: HEADERS, httpsAgent: agent });
         console.log(`${cl.yl})>${cl.or} Ping success ${cl.gr}-> ${cl.br}${nodeId}${cl.rt}`);
     } catch (error) {
-        console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red} ${error.response.status} ${error.response.statusText}${cl.rt}`);
-        console.log(`Response content: ${error.response.data}`);
+        if (error.response) {
+            // Handle Cloudflare or other specific errors
+            if (error.response.status === 403 && error.response.data.includes('Cloudflare')) {
+                console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Cloudflare protection detected${cl.rt}`);
+                console.log(`${cl.yl})>${cl.rt} Waiting 5 minutes before retrying...`);
+                await new Promise(resolve => setTimeout(resolve, 300000)); // Wait 5 minutes
+                return;
+            }
+            
+            // Handle rate limiting
+            if (error.response.status === 429) {
+                console.log(`${cl.yl})>${cl.rt} Rate limit reached ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Too many requests${cl.rt}`);
+                console.log(`${cl.yl})>${cl.rt} Waiting 2 minutes before retrying...`);
+                await new Promise(resolve => setTimeout(resolve, 120000)); // Wait 2 minutes
+                return;
+            }
+
+            // Handle authentication errors
+            if (error.response.status === 401 || error.response.status === 403) {
+                console.log(`${cl.yl})>${cl.rt} Authentication failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Please check your AUTH_TOKEN${cl.rt}`);
+                process.exit(1); // Exit the process as this is a critical error
+            }
+
+            // Handle server errors
+            if (error.response.status >= 500) {
+                console.log(`${cl.yl})>${cl.rt} Server error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status} ${error.response.statusText}${cl.rt}`);
+                console.log(`${cl.yl})>${cl.rt} Waiting 1 minute before retrying...`);
+                await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
+                return;
+            }
+
+            // Log other errors with response
+            console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status} ${error.response.statusText}${cl.rt}`);
+            if (error.response.data) {
+                console.log(`${cl.yl})>${cl.rt} Error details: ${cl.red}${typeof error.response.data === 'object' ? JSON.stringify(error.response.data) : error.response.data}${cl.rt}`);
+            }
+        } else if (error.request) {
+            // Handle network errors
+            console.log(`${cl.yl})>${cl.rt} Network error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}No response received${cl.rt}`);
+            console.log(`${cl.yl})>${cl.rt} Waiting 30 seconds before retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+        } else {
+            // Handle other errors
+            console.log(`${cl.yl})>${cl.rt} Unknown error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.message}${cl.rt}`);
+        }
     }
 }
 
@@ -132,7 +175,7 @@ async function getProxyIP(proxy) {
         const response = await axios.get('https://ipinfo.io/json', { httpsAgent: agent });
         const Ipinfo = response.data.ip;
         const maskedIp = Ipinfo.replace(/(\d+\.\d+\.\d+)\.(\d+)/, '$1.***');
-        console.log(`${cl.yl})>${cl.rt} Connected through Ip: ${cl.gr}${cl.st} ${maskedIp}${cl.rt}`);
+        console.log(`${cl.yl})>${cl.rt} Connected through Ip: ${cl.gr} ${Ipinfo}${cl.rt}`);
         return response.data;
     } catch (error) {
         console.log(`${cl.yl})>${cl.rt} Skipping proxy ${proxy} due to connection error: ${error.message}`);
@@ -206,3 +249,12 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
+// Add these error handlers at the end
+process.on('unhandledRejection', (reason, promise) => {
+    console.log(`${cl.red}Unhandled Rejection at:${cl.rt}`, promise, `${cl.red}reason:${cl.rt}`, reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.log(`${cl.red}Uncaught Exception:${cl.rt}`, error);
+    process.exit(1);
+});
