@@ -96,19 +96,3 @@ npm start
 - <img src="https://github.com/user-attachments/assets/caa89af0-bbe9-4fbd-871b-4e565fad040b" widht=580 height=480 >
 
 
-
-## 📢 Additional information
-
-  To get a stable Proxy you can use this Platform, plans ranging from $3 to $125 for 6 months, or use your own choice.
-  
-- Get Proxies IP address Socks5
-  - Create an account at [proxies.fo](https://app.proxies.fo/ref/8b1abd0f-c734-1602-5985-612caedf4c7b)
-  - Go to `purchase isp`  and `buy` a plan according to `your needs`.
-    - You can use `cryptocurrency` for `payment` 
-    - <img src="https://github.com/user-attachments/assets/18f24ed1-cfc6-4141-addb-07e009c7226b" width="720" height="480" alt="Screenshot">
-  - after that you go to the dashboard `Click Generate proxy Button`
-  - Now You can change the Proxy format to :
-     - `protocol://username:password@hostname:port`
-     - or just look the ss below
-     - ![Screenshot 2024-12-06 at 16 24 31](https://github.com/user-attachments/assets/c9d552f1-7241-4705-8580-30a88aae8638)
-
