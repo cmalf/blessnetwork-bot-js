@@ -1,10 +1,16 @@
 const axios = require('axios');
 const set = require('./config');
-const { NODE_IDS } = require('./idnode');
+const {
+    NODE_IDS
+} = require('./idnode');
 const fs = require('fs');
 const readline = require('readline');
-const { SocksProxyAgent } = require('socks-proxy-agent');
-const { HttpsProxyAgent } = require('https-proxy-agent');
+const {
+    SocksProxyAgent
+} = require('socks-proxy-agent');
+const {
+    HttpsProxyAgent
+} = require('https-proxy-agent');
 
 let CoderMarkPrinted = false;
 
@@ -16,6 +22,7 @@ const cl = {
     gb: '\x1b[4m',
     st: '\x1b[9m',
     or: '\x1b[35m',
+    am: '\x1b[38;5;198m',
     rt: '\x1b[0m'
 };
 
@@ -30,7 +37,7 @@ function CoderMark() {
 ╰╯╱╱╰━━┻╯╰━╮┣━━┻╯╰┻╯╱╱╰━┻━╮╭┻╯╰┻╯╰╯${cl.rt}
 ╱╱╱╱╱╱╱╱╱╱╱┃┃╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╰╯╱╱╱╱╱╱╱╱╱╱╱╰━━╯
-\n${cl.gb}${cl.gr}blessnetwork Bot ${cl.rt}${cl.gb}v0.1${cl.rt}
+\n${cl.gb}${cl.gr}blessnetwork Bot ${cl.rt}${cl.gb}v0.1.1${cl.rt}
         `);
         CoderMarkPrinted = true;
     }
@@ -48,23 +55,35 @@ const HealthHeader = {
     "Accept": "*/*",
     "Origin": "chrome-extension://pljbjcehnhcnofmkdbjolghdcjnmekia",
     "Accept-Language": "en-US,en;q=0.9"
-}
+};
 
 async function checkGlobalHealth() {
     const url = `${BASE_API_URL}/health`;
     try {
-        const response = await axios.get(url, { headers: HealthHeader });
+        const response = await axios.get(url, {
+            headers: HealthHeader,
+            timeout: 10000 // Add timeout of 10 seconds
+        });
         const healthStatus = response.data.status;
         console.log(`${cl.yl})>${cl.rt} Global Health Check: ${cl.gr}${healthStatus}${cl.rt}`);
+        return healthStatus;
     } catch (error) {
-        console.log(`Global Health Check Failed: ${error.response.status} ${error.response.statusText}`);
-        console.log(`Response content: ${error.response.data}`);
+        console.log(`${cl.red}Global Health Check Failed: ${error.message}${cl.rt}`);
+        if (error.response) {
+            console.log(`${cl.red}Response status: ${error.response.status}${cl.rt}`);
+            console.log(`${cl.red}Response content: ${JSON.stringify(error.response.data)}${cl.rt}`);
+        }
+        return 'error';
     }
 }
 
 async function pingSession(nodeId, proxy) {
     const url = `${BASE_API_URL}/api/v1/nodes/${nodeId}/ping`;
     let agent;
+    const config = {
+        headers: HEADERS,
+        timeout: 30000 // Add timeout of 30 seconds
+    };
 
     if (proxy) {
         if (proxy.startsWith('socks://') || proxy.startsWith('socks5://')) {
@@ -72,77 +91,124 @@ async function pingSession(nodeId, proxy) {
         } else if (proxy.startsWith('http://') || proxy.startsWith('https://')) {
             agent = new HttpsProxyAgent(proxy);
         }
+        config.httpsAgent = agent;
     }
 
     try {
-        await axios.post(url, null, { headers: HEADERS, httpsAgent: agent });
+        await axios.post(url, null, config);
         console.log(`${cl.yl})>${cl.or} Ping success ${cl.gr}-> ${cl.br}${nodeId}${cl.rt}`);
+        return true;
     } catch (error) {
         if (error.response) {
             // Handle Cloudflare or other specific errors
             if (error.response.status === 403 && error.response.data.includes('Cloudflare')) {
                 console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Cloudflare protection detected${cl.rt}`);
-                console.log(`${cl.yl})>${cl.rt} Waiting 5 minutes before retrying...`);
-                await new Promise(resolve => setTimeout(resolve, 300000)); // Wait 5 minutes
-                return;
+                await new Promise(resolve => setTimeout(resolve, 300000));
+                return false;
             }
-            
             // Handle rate limiting
             if (error.response.status === 429) {
                 console.log(`${cl.yl})>${cl.rt} Rate limit reached ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Too many requests${cl.rt}`);
-                console.log(`${cl.yl})>${cl.rt} Waiting 2 minutes before retrying...`);
-                await new Promise(resolve => setTimeout(resolve, 120000)); // Wait 2 minutes
-                return;
+                await new Promise(resolve => setTimeout(resolve, 120000));
+                return false;
             }
-
             // Handle authentication errors
             if (error.response.status === 401 || error.response.status === 403) {
                 console.log(`${cl.yl})>${cl.rt} Authentication failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Please check your AUTH_TOKEN${cl.rt}`);
-                process.exit(1); // Exit the process as this is a critical error
+                process.exit(1);
             }
-
             // Handle server errors
             if (error.response.status >= 500) {
-                console.log(`${cl.yl})>${cl.rt} Server error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status} ${error.response.statusText}${cl.rt}`);
-                console.log(`${cl.yl})>${cl.rt} Waiting 1 minute before retrying...`);
-                await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
-                return;
+                console.log(`${cl.yl})>${cl.rt} Server error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status}${cl.rt}`);
+                await new Promise(resolve => setTimeout(resolve, 60000));
+                return false;
             }
-
             // Log other errors with response
-            console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status} ${error.response.statusText}${cl.rt}`);
+            console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status}${cl.rt}`);
             if (error.response.data) {
-                console.log(`${cl.yl})>${cl.rt} Error details: ${cl.red}${typeof error.response.data === 'object' ? JSON.stringify(error.response.data) : error.response.data}${cl.rt}`);
+                console.log(`${cl.yl})>${cl.rt} Error details: ${cl.red}${JSON.stringify(error.response.data)}${cl.rt}`);
             }
         } else if (error.request) {
             // Handle network errors
             console.log(`${cl.yl})>${cl.rt} Network error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}No response received${cl.rt}`);
-            console.log(`${cl.yl})>${cl.rt} Waiting 30 seconds before retrying...`);
-            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+            await new Promise(resolve => setTimeout(resolve, 30000));
         } else {
             // Handle other errors
             console.log(`${cl.yl})>${cl.rt} Unknown error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.message}${cl.rt}`);
         }
+        return false;
     }
 }
 
 async function manageNode(nodeId, proxy) {
+    let consecutiveFailures = 0;
+    const MAX_FAILURES = 5;
+
     try {
         while (true) {
             console.log(`${cl.yl})>${cl.rt} Pinging Node ${cl.gr}->${cl.br} ${nodeId}${cl.rt}`);
-            await pingSession(nodeId, proxy);
-            await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 60 seconds between pings
+            const success = await pingSession(nodeId, proxy);
+            
+            if (!success) {
+                consecutiveFailures++;
+                if (consecutiveFailures >= MAX_FAILURES) {
+                    console.log(`${cl.red}Too many consecutive failures for Node ${nodeId}. Waiting 5 minutes before continuing...${cl.rt}`);
+                    await new Promise(resolve => setTimeout(resolve, 300000));
+                    consecutiveFailures = 0;
+                }
+            } else {
+                consecutiveFailures = 0;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 60000));
         }
     } catch (error) {
         console.log(`${cl.red}An error occurred for Node ${nodeId}: ${error}${cl.rt}`);
     }
 }
 
-async function globalHealthMonitor() {
+// Update globalHealthMonitor function to accept proxy parameter
+async function globalHealthMonitor(proxy) {
+    let consecutiveFailures = 0;
+    const MAX_FAILURES = 3;
+
     try {
         while (true) {
-            await checkGlobalHealth();
-            await new Promise(resolve => setTimeout(resolve, 300000)); // Check global health every 5 minutes
+            let config = {
+                headers: HealthHeader,
+                timeout: 10000
+            };
+
+            if (proxy) {
+                let agent;
+                if (proxy.startsWith('socks://') || proxy.startsWith('socks5://')) {
+                    agent = new SocksProxyAgent(proxy);
+                } else if (proxy.startsWith('http://') || proxy.startsWith('https://')) {
+                    agent = new HttpsProxyAgent(proxy);
+                }
+                config.httpsAgent = agent;
+            }
+
+            const url = `${BASE_API_URL}/health`;
+            try {
+                const response = await axios.get(url, config);
+                const healthStatus = response.data.status;
+                console.log(`${cl.yl})>${cl.rt} Global Health Check: ${cl.gr}${healthStatus}${cl.rt}`);
+                consecutiveFailures = 0;
+            } catch (error) {
+                console.log(`${cl.red}Global Health Check Failed: ${error.message}${cl.rt}`);
+                if (error.response) {
+                    console.log(`${cl.red}Response status: ${error.response.status}${cl.rt}`);
+                    console.log(`${cl.red}Response content: ${JSON.stringify(error.response.data)}${cl.rt}`);
+                }
+                consecutiveFailures++;
+                if (consecutiveFailures >= MAX_FAILURES) {
+                    console.log(`${cl.red}Global health check failed ${MAX_FAILURES} times in a row. Waiting 10 minutes...${cl.rt}`);
+                    await new Promise(resolve => setTimeout(resolve, 600000));
+                    consecutiveFailures = 0;
+                }
+            }
+            await new Promise(resolve => setTimeout(resolve, 300000));
         }
     } catch (error) {
         console.log(`${cl.red}An error occurred in global health monitoring: ${error}${cl.rt}`);
@@ -153,9 +219,9 @@ async function readLines(filename) {
     try {
         const data = await fs.promises.readFile(filename, 'utf-8');
         console.log(`${cl.yl}[+]${cl.rt} Loaded data from ${filename}`);
-        return data.split('\n').filter(Boolean);
+        return data.split('\n').filter(line => line.trim());
     } catch (error) {
-        console.log(`Failed to read ${filename}: ${error.message}`);
+        console.log(`${cl.red}Failed to read ${filename}: ${error.message}${cl.rt}`);
         return [];
     }
 }
@@ -167,15 +233,16 @@ async function getProxyIP(proxy) {
     } else if (proxy.startsWith('http://') || proxy.startsWith('https://')) {
         agent = new HttpsProxyAgent(proxy);
     } else {
-        console.log(`Unsupported proxy format: ${proxy}`);
+        console.log(`${cl.red}Unsupported proxy format: ${proxy}${cl.rt}`);
         return null;
     }
 
     try {
-        const response = await axios.get('https://ipinfo.io/json', { httpsAgent: agent });
-        const Ipinfo = response.data.ip;
-        const maskedIp = Ipinfo.replace(/(\d+\.\d+\.\d+)\.(\d+)/, '$1.***');
-        console.log(`${cl.yl})>${cl.rt} Connected through Ip: ${cl.gr} ${Ipinfo}${cl.rt}`);
+        const response = await axios.get('https://ipinfo.io/json', {
+            httpsAgent: agent,
+            timeout: 10000
+        });
+        const maskedIp = response.data.ip.replace(/(\d+\.\d+\.\d+)\.(\d+)/, '$1.***');
         return response.data;
     } catch (error) {
         console.log(`${cl.yl})>${cl.rt} Skipping proxy ${proxy} due to connection error: ${error.message}`);
@@ -191,13 +258,18 @@ async function main() {
         output: process.stdout
     });
 
-    rl.question(`${cl.yl}Choose run option:\n\n${cl.rt}1. Run directly (without proxy)\n2. ${cl.gr}Run with proxy${cl.rt} (proxy.txt)\n\n Enter your choice: `, async (answer) => {
+    try {
+        const answer = await new Promise(resolve => {
+            rl.question(`${cl.yl}Choose run option:\n\n${cl.rt}1. Run directly (without proxy)\n2. ${cl.gr}Run with proxy${cl.rt} (proxy.txt)\n\n Enter your choice: `, resolve);
+        });
+
         if (answer === '2') {
             console.log(`\n${cl.yl})>${cl.gr} Proxy connection mode enabled.${cl.rt}`);
             console.log(`\n${cl.yl}[+]${cl.yl} Please wait...${cl.rt}\n`);
+            
             const proxies = await readLines(set.proxyFile);
             if (proxies.length === 0) {
-                console.log('No proxies found. Exiting...');
+                console.log(`${cl.red}No proxies found. Exiting...${cl.rt}`);
                 rl.close();
                 return;
             }
@@ -205,47 +277,51 @@ async function main() {
             console.log(`${cl.yl}[+]${cl.rt} Loaded ${proxies.length} proxies`);
             console.log(`${cl.yl}[+]${cl.rt} Loaded data from idnode.js`);
             console.log(`${cl.yl}[+]${cl.rt} Loaded ${NODE_IDS.length} nodeId\n`);
-            if (proxies.length < NODE_IDS.length) {
-                console.log('Not enough proxies for the number of NODE_IDS. Exiting...');
-                rl.close();
-                return;
-            } else if (proxies.length > NODE_IDS.length) {
-                console.log('More proxies than NODE_IDS. Exiting...');
+
+            if (proxies.length !== NODE_IDS.length) {
+                console.log(`${cl.red}Number of proxies (${proxies.length}) does not match number of NODE_IDS (${NODE_IDS.length}). Exiting...${cl.rt}`);
                 rl.close();
                 return;
             }
-
+    
+            const promises = [];
             for (let i = 0; i < NODE_IDS.length; i++) {
                 const nodeId = NODE_IDS[i];
                 const proxy = proxies[i];
                 const proxyInfo = await getProxyIP(proxy);
-                globalHealthMonitor();
+                
+                // Start a health monitor for each NODE_IDS through proxy
+                promises.push(globalHealthMonitor(proxy));
+                
                 if (proxyInfo) {
-                    manageNode(nodeId, proxyInfo.ip);
+                    const maskedIp = proxyInfo.ip.replace(/(\d+\.\d+\.\d+)\.(\d+)/, '$1.***');
+                    console.log(`${cl.yl})>${cl.rt} Node ${cl.am}${nodeId} ${cl.rt}using proxyIP: ${cl.gr}${maskedIp}${cl.rt}`);
+                    // fix connection through proxy.
+                    promises.push(manageNode(nodeId, proxy));
                 }
             }
+            
+            await Promise.all(promises);
         } else {
             console.log(`\n${cl.yl})>${cl.gr} Direct connection mode enabled.${cl.rt}\n`);
             console.log(`${cl.yl}[+]${cl.rt} Loaded data from idnode.js`);
             console.log(`${cl.yl}[+]${cl.rt} Loaded ${NODE_IDS.length} nodeId\n`);
-            const promises = [];
-
-            promises.push(globalHealthMonitor());
-
-            for (const nodeId of NODE_IDS) {
-                promises.push(manageNode(nodeId, null));
-            }
-
+            
+            const promises = [globalHealthMonitor()];
+            NODE_IDS.forEach(nodeId => promises.push(manageNode(nodeId, null)));
             await Promise.all(promises);
         }
+    } catch (error) {
+        console.log(`${cl.red}Error in main function: ${error}${cl.rt}`);
+    } finally {
         rl.close();
-    });
+    }
 }
 
-main().catch(error => console.log(`Unhandled error: ${error}`));
+main().catch(error => console.log(`${cl.red}Unhandled error: ${error}${cl.rt}`));
 
 process.on('SIGINT', () => {
-    console.log("Exiting script...");
+    console.log("\nExiting script...");
     process.exit(0);
 });
 
