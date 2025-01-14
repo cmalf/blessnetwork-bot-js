@@ -37,7 +37,7 @@ function CoderMark() {
 ╰╯╱╱╰━━┻╯╰━╮┣━━┻╯╰┻╯╱╱╰━┻━╮╭┻╯╰┻╯╰╯${cl.rt}
 ╱╱╱╱╱╱╱╱╱╱╱┃┃╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╰╯╱╱╱╱╱╱╱╱╱╱╱╰━━╯
-\n${cl.gb}${cl.gr}blessnetwork Bot ${cl.rt}${cl.gb}v0.1.1${cl.rt}
+\n${cl.gb}${cl.gr}blessnetwork Bot ${cl.rt}${cl.gb}v0.1.2${cl.rt}
         `);
         CoderMarkPrinted = true;
     }
@@ -48,6 +48,10 @@ const AUTH_TOKEN = set.AUTH_TOKEN;
 const HEADERS = {
     "Authorization": `Bearer ${AUTH_TOKEN}`,
     "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "cross-site",
+    "user-agent": set.UserAgent
 };
 
 const HealthHeader = {
