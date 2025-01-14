@@ -2,6 +2,12 @@
 
 A Node.js script to automate running blessnetwork node.
 
+> [!TIP]
+> ## Update Your Bot Script To v0.1.2
+> ## Dev bless Adding "core" require to make request
+> ## Update Your Auth Token
+> ## Add UserAgent on Config.js click here to [get useragent](https://ipchicken.com/)
+
 > [!WARNING]
 > I am not responsible for any loss or damage caused by this bot. Use it at your own risk.
 
