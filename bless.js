@@ -51,7 +51,11 @@ const HealthHeader = {
     "Host": "gateway-run.bls.dev",
     "Accept": "*/*",
     "Origin": "chrome-extension://pljbjcehnhcnofmkdbjolghdcjnmekia",
-    "Accept-Language": "en-US,en;q=0.9"
+    "Accept-Language": "en-US,en;q=0.9",
+    "Access-Control-Allow-Origin": "*",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "cross-site",
+    "user-agent": getRandomUserAgent()
 };
 
 async function checkGlobalHealth() {
@@ -332,8 +336,9 @@ async function main() {
                     continue;
                 }
                 const headers = HEADERS_TEMPLATE(authToken);
-                // Start a single global health monitor for direct connection
+                // Comment this (line 340) if cloudflare still persist "we no need Global health Check anymore"
                 promises.push(globalHealthMonitor(null));
+                // promises.push(globalHealthMonitor(null)); ( like this )
 
                 const accountNodes = NODE_IDS.slice(i * 5, (i + 1) * 5);
                 for (const nodeId of accountNodes) {
