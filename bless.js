@@ -31,7 +31,7 @@ function CoderMark() {
 ╰╯╱╱╰━━┻╯╰━╮┣━━┻╯╰┻╯╱╱╰━┻━╮╭┻╯╰┻╯╰╯${cl.rt}
 ╱╱╱╱╱╱╱╱╱╱╱┃┃╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╰╯╱╱╱╱╱╱╱╱╱╱╰━━╯
-\n${cl.gb}${cl.gr}blessnetwork Bot ${cl.rt}${cl.gb}v0.1.2${cl.rt}
+\n${cl.gb}${cl.gr}blessnetwork Bot ${cl.rt}${cl.gb}v0.1.3${cl.rt}
         `);
         CoderMarkPrinted = true;
     }
@@ -39,44 +39,13 @@ function CoderMark() {
 
 const BASE_API_URL = "https://gateway-run.bls.dev";
 const HEADERS_TEMPLATE = (authToken) => ({
-    "Authorization": `Bearer ${authToken}`,
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "user-agent": getRandomUserAgent()
+    'Authorization': `Bearer ${authToken}`,
+    'Content-Type': 'application/json',
+    'access-control-allow-credentials': 'true',
+    'Access-Control-Allow-Origin': '*',
+    'sec-fetch-mode': 'cors',
+    'user-agent': getRandomUserAgent()
 });
-
-const HealthHeader = {
-    "Host": "gateway-run.bls.dev",
-    "Accept": "*/*",
-    "Origin": "chrome-extension://pljbjcehnhcnofmkdbjolghdcjnmekia",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Access-Control-Allow-Origin": "*",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "user-agent": getRandomUserAgent()
-};
-
-async function checkGlobalHealth() {
-    const url = `${BASE_API_URL}/health`;
-    try {
-        const response = await axios.get(url, {
-            headers: HealthHeader,
-            timeout: 10000 // 10 seconds timeout
-        });
-        const healthStatus = response.data.status;
-        console.log(`${cl.yl})>${cl.rt} Global Health Check: ${cl.gr}${healthStatus}${cl.rt}`);
-        return healthStatus;
-    } catch (error) {
-        console.log(`${cl.red}Global Health Check Failed: ${error.message}${cl.rt}`);
-        if (error.response) {
-            console.log(`${cl.red}Response status: ${error.response.status}${cl.rt}`);
-            console.log(`${cl.red}Response content: ${JSON.stringify(error.response.data)}${cl.rt}`);
-        }
-        return 'error';
-    }
-}
 
 async function pingSession(nodeId, headers, proxy) {
     const url = `${BASE_API_URL}/api/v1/nodes/${nodeId}/ping`;
@@ -95,47 +64,59 @@ async function pingSession(nodeId, headers, proxy) {
         config.httpsAgent = agent;
     }
 
-    try {
-        await axios.post(url, null, config);
-        console.log(`${cl.yl})>${cl.or} Ping success ${cl.gr}-> ${cl.br}${nodeId}${cl.rt}`);
-        return true;
-    } catch (error) {
-        if (error.response) {
-            // Handle specific HTTP errors
-            if (error.response.status === 403 && error.response.data.includes('Cloudflare')) {
-                console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Cloudflare protection detected${cl.rt}`);
-                await new Promise(resolve => setTimeout(resolve, 300000)); // Wait 5 minutes
-                return false;
+    const MAX_RETRIES = 5;
+    let retryCount = 0;
+
+    while (retryCount < MAX_RETRIES) {
+        try {
+            await axios.post(url, null, config);
+            console.log(`${cl.yl})>${cl.or} Ping success ${cl.gr}-> ${cl.br}${nodeId}${cl.rt}`);
+            return true;
+        } catch (error) {
+            // Handle response errors
+            if (error.response) {
+                const { status, data } = error.response;
+                if (status === 403 && typeof data === 'string' && data.includes('Cloudflare protection detected')) {
+                    retryCount++;
+                    if (retryCount < MAX_RETRIES) {
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        continue;
+                    } else {
+                        return false;
+                    }
+                }
+                if (status === 429) {
+                    console.log(`${cl.yl})>${cl.rt} Rate limit reached ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Too many requests${cl.rt}`);
+                    await new Promise(resolve => setTimeout(resolve, 120000)); // Wait 2 minutes
+                    return false;
+                }
+                if (status === 401 || status === 407) {
+                    console.log(`${cl.yl})>${cl.rt} Authentication failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Please check your AUTH_TOKEN${cl.rt}`);
+                    process.exit(1);
+                }
+                if (status >= 500) {
+                    console.log(`${cl.yl})>${cl.rt} Server error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${status}${cl.rt}`);
+                    await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
+                    return false;
+                }
+                if (data) {
+                    console.log(`${cl.yl})>${cl.rt} Error details: ${cl.red}${JSON.stringify(data)}${cl.rt}`);
+                }
+            } else if (error.request) {
+                retryCount++;
+                if (retryCount < MAX_RETRIES) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    continue;
+                } else {
+                    return false;
+                }
+            } else {
+                console.log(`${cl.yl})>${cl.rt} Unknown error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.message}${cl.rt}`);
             }
-            if (error.response.status === 429) {
-                console.log(`${cl.yl})>${cl.rt} Rate limit reached ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Too many requests${cl.rt}`);
-                await new Promise(resolve => setTimeout(resolve, 120000)); // Wait 2 minutes
-                return false;
-            }
-            if (error.response.status === 401 || error.response.status === 403) {
-                console.log(`${cl.yl})>${cl.rt} Authentication failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}Please check your AUTH_TOKEN${cl.rt}`);
-                process.exit(1);
-            }
-            if (error.response.status >= 500) {
-                console.log(`${cl.yl})>${cl.rt} Server error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status}${cl.rt}`);
-                await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
-                return false;
-            }
-            // Log other response errors
-            console.log(`${cl.yl})>${cl.rt} Ping failed ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.response.status}${cl.rt}`);
-            if (error.response.data) {
-                console.log(`${cl.yl})>${cl.rt} Error details: ${cl.red}${JSON.stringify(error.response.data)}${cl.rt}`);
-            }
-        } else if (error.request) {
-            // Network errors
-            console.log(`${cl.yl})>${cl.rt} Network error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}No response received${cl.rt}`);
-            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
-        } else {
-            // Other errors
-            console.log(`${cl.yl})>${cl.rt} Unknown error ${cl.gr}-> ${cl.br}${nodeId}: ${cl.red}${error.message}${cl.rt}`);
+            return false;
         }
-        return false;
     }
+    return false;
 }
 
 async function manageNode(nodeId, headers, proxy) {
@@ -162,53 +143,6 @@ async function manageNode(nodeId, headers, proxy) {
         }
     } catch (error) {
         console.log(`${cl.red}An error occurred for Node ${nodeId}: ${error}${cl.rt}`);
-    }
-}
-
-async function globalHealthMonitor(proxy) {
-    let consecutiveFailures = 0;
-    const MAX_FAILURES = 3;
-
-    try {
-        while (true) {
-            let config = {
-                headers: HealthHeader,
-                timeout: 10000
-            };
-
-            if (proxy) {
-                let agent;
-                if (proxy.startsWith('socks://') || proxy.startsWith('socks5://')) {
-                    agent = new SocksProxyAgent(proxy);
-                } else if (proxy.startsWith('http://') || proxy.startsWith('https://')) {
-                    agent = new HttpsProxyAgent(proxy);
-                }
-                config.httpsAgent = agent;
-            }
-
-            const url = `${BASE_API_URL}/health`;
-            try {
-                const response = await axios.get(url, config);
-                const healthStatus = response.data.status;
-                console.log(`${cl.yl})>${cl.rt} Global Health Check: ${cl.gr}${healthStatus}${cl.rt}`);
-                consecutiveFailures = 0;
-            } catch (error) {
-                console.log(`${cl.red}Global Health Check Failed: ${error.message}${cl.rt}`);
-                if (error.response) {
-                    console.log(`${cl.red}Response status: ${error.response.status}${cl.rt}`);
-                    console.log(`${cl.red}Response content: ${JSON.stringify(error.response.data)}${cl.rt}`);
-                }
-                consecutiveFailures++;
-                if (consecutiveFailures >= MAX_FAILURES) {
-                    console.log(`${cl.red}Global health check failed ${MAX_FAILURES} times in a row. Waiting 10 minutes...${cl.rt}`);
-                    await new Promise(resolve => setTimeout(resolve, 600000)); // Wait 10 minutes
-                    consecutiveFailures = 0;
-                }
-            }
-            await new Promise(resolve => setTimeout(resolve, 300000)); // Wait 5 minutes
-        }
-    } catch (error) {
-        console.log(`${cl.red}An error occurred in global health monitoring: ${error}${cl.rt}`);
     }
 }
 
@@ -239,7 +173,6 @@ async function getProxyIP(proxy) {
             httpsAgent: agent,
             timeout: 10000
         });
-        const maskedIp = response.data.ip.replace(/(\d+\.\d+\.\d+)\.(\d+)/, '$1.***');
         return response.data;
     } catch (error) {
         console.log(`${cl.yl})>${cl.rt} Skipping proxy ${proxy} due to connection error: ${error.message}${cl.rt}`);
@@ -304,17 +237,13 @@ async function main() {
                 }
                 const headers = HEADERS_TEMPLATE(authToken);
 
-                // Start global health monitor for this account
-                const proxyForHealth = accountProxies[0]; // Use the first proxy for health checks
-                promises.push(globalHealthMonitor(proxyForHealth));
-
                 for (let j = 0; j < accountNodes.length; j++) {
                     const nodeId = accountNodes[j];
                     const proxy = accountProxies[j];
                     const proxyInfo = await getProxyIP(proxy);
                     
                     if (proxyInfo) {
-                        const maskedIp = proxyInfo.ip.replace(/(\d+\.\d+\.\d+)\.(\d+)/, '$1.***');
+                        const maskedIp = proxyInfo.ip.replace(/(\\d+\\.\\d+\\.\\d+)\\.(\\d+)/, '$1.***');
                         console.log(`${cl.yl})>${cl.rt} Node ${cl.am}${nodeId}${cl.rt} using proxyIP: ${cl.gr}${maskedIp}${cl.rt}`);
                         promises.push(manageNode(nodeId, headers, proxy));
                     }
@@ -336,10 +265,6 @@ async function main() {
                     continue;
                 }
                 const headers = HEADERS_TEMPLATE(authToken);
-                // Comment this (line 340) if cloudflare still persist "we no need Global health Check anymore"
-                promises.push(globalHealthMonitor(null));
-                // promises.push(globalHealthMonitor(null)); ( like this )
-
                 const accountNodes = NODE_IDS.slice(i * 5, (i + 1) * 5);
                 for (const nodeId of accountNodes) {
                     promises.push(manageNode(nodeId, headers, null));
