@@ -221,27 +221,27 @@ function processNode($authToken, $nodeId, $proxy, $globalNodeIndex) {
         $statusPing = ($postResponse["status"] === 200) ? "Pinging Success!" : "Pinging Failed!";
         echo $Colors["Neon"] . "]> " . $Colors["Rt"] . " PING : " . $pingColor . " " . $statusPing . $Colors["Rt"] . "\n";
         
-        // GET request: check node status.
-        $getResponse = curlRequest($getUrl, 'GET', HEADERS($authToken), null, $proxyConfig);
-        $getColor = ($getResponse["status"] === 200) ? $Colors["Gold"] : $Colors["Red"];
-        $statusCheck = ($getResponse["status"] === 200) ? "Checking Success!" : "Checking Failed!";
-        echo $Colors["Neon"] . "]> " . $Colors["Rt"] . " Check: " . $getColor . " " . $statusCheck . $Colors["Rt"] . "\n";
+        // // GET request: check node status.
+        // $getResponse = curlRequest($getUrl, 'GET', HEADERS($authToken), null, $proxyConfig);
+        // $getColor = ($getResponse["status"] === 200) ? $Colors["Gold"] : $Colors["Red"];
+        // $statusCheck = ($getResponse["status"] === 200) ? "Checking Success!" : "Checking Failed!";
+        // echo $Colors["Neon"] . "]> " . $Colors["Rt"] . " Check: " . $getColor . " " . $statusCheck . $Colors["Rt"] . "\n";
         
-        $totalReward = 'N/A';
-        $todayReward = 'N/A';
-        try {
-            $responseData = json_decode($getResponse["body"], true);
-            if (isset($responseData["totalReward"])) {
-                $totalReward = $responseData["totalReward"];
-            }
-            if (isset($responseData["todayReward"])) {
-                $todayReward = $responseData["todayReward"];
-            }
-        } catch (Exception $parseError) {
-            echo $Colors["Red"] . "Error parsing GET response body for node " . maskedNodeId($nodeId) . ":" . $Colors["Rt"] . "\n";
-        }
+        // $totalReward = 'N/A';
+        // $todayReward = 'N/A';
+        // try {
+        //     $responseData = json_decode($getResponse["body"], true);
+        //     if (isset($responseData["totalReward"])) {
+        //         $totalReward = $responseData["totalReward"];
+        //     }
+        //     if (isset($responseData["todayReward"])) {
+        //         $todayReward = $responseData["todayReward"];
+        //     }
+        // } catch (Exception $parseError) {
+        //     echo $Colors["Red"] . "Error parsing GET response body for node " . maskedNodeId($nodeId) . ":" . $Colors["Rt"] . "\n";
+        // }
         
-        echo $Colors["Neon"] . "]> " . $Colors["Rt"] . " Point: " . $Colors["Rt"] . " totalReward: " . $Colors["Neon"] . " " . $totalReward . " " . $Colors["Rt"] . " todayReward: " . $Colors["Neon"] . " " . $todayReward . $Colors["Rt"] . "\n";
+        // echo $Colors["Neon"] . "]> " . $Colors["Rt"] . " Point: " . $Colors["Rt"] . " totalReward: " . $Colors["Neon"] . " " . $totalReward . " " . $Colors["Rt"] . " todayReward: " . $Colors["Neon"] . " " . $todayReward . $Colors["Rt"] . "\n";
         
     } catch (Exception $error) {
         echo $Colors["Red"] . "Error processing node " . maskedNodeId($nodeId) . ":" . $Colors["Rt"] . "\n";
