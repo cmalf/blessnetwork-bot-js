@@ -2,17 +2,14 @@
 
 A Node.js script to automate running blessnetwork node.
 
-> [!TIP]
-> ## If you want to use old version (not a multiple version)
-> ```bash
-> git clone https://github.com/cmalf/blessnetwork-bot-js.git
-> ```
-> ```bash
-> cd blessnetwork-bot-js
-> ```
-> ```bash
-> git checkout 199fc6de8d3d5aea7692a6f7bf2ebf3f6ee5fd66
-> ```
+> [!WARNING]
+> ## Bot not working!
+> ##  They added signature for PING request process in Extension v0.1.8!
+> ##  I tried to create signature using @noble/secp256k1,@noble/hasses/hmac but it still failed
+> ##  Maybe there is an error when I decrypt EncryptedPrivateKey using a method similar to their Unmarshal method.
+> ##  I still haven't found the right way to Decrypt PrivateKey to get valid signature
+> ##  If you find the right way or method to decrypt PrivateKey please open the conversation in "Issues" session!
+
 
 
 > [!WARNING]
