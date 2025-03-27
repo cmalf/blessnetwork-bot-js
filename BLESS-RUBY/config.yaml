@@ -1,0 +1,7 @@
+accounts:
+  - authToken: "account1" # without Bearer
+    nodeIds: ["node1", "node2", "node3", "node4", "node5"] 
+  #- authToken: "account2"
+  #  nodeIds: ["node6", "node7", "node8", "node9", "node10"]
+  # ... Add more account? just copy the form
+  # 1 authtoken For 5 NodeIDs

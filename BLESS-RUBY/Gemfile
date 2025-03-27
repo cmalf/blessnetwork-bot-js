@@ -1,0 +1,10 @@
+source 'https://rubygems.org'
+
+gem 'yaml'
+gem 'colorize'
+gem 'digest'
+gem 'json'
+gem 'securerandom'
+gem 'faker' 
+gem 'curb'
+gem 'ostruct'
