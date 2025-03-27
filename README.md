@@ -2,15 +2,10 @@
 
 A Node.js script to automate running blessnetwork node.
 
-> [!WARNING]
-> ## Bot not working!
-> ##  They added signature for PING request process in Extension v0.1.8!
-> ##  I tried to create signature using @noble/secp256k1,@noble/hasses/hmac but it still failed
-> ##  Maybe there is an error when I decrypt EncryptedPrivateKey using a method similar to their Unmarshal method.
-> ##  I still haven't found the right way to Decrypt PrivateKey to get valid signature
-> ##  If you find the right way or method to decrypt PrivateKey please open the conversation in "Issues" session!
-
-
+> [!TIP]
+> ## The Bot is working now!
+> ## using ruby ​​3.1.3p185
+> ## and Curb to bypass Cloudflare 
 
 > [!WARNING]
 > I am not responsible for any loss or damage caused by this bot. Use it at your own risk.
