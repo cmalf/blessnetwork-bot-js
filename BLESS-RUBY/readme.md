@@ -34,6 +34,11 @@
 > [!WARNING]
 > ## Do not add proxies less than the nodeid you are going to run, if the proxy is more it will not be a problem but the proxy will not be used, the condition is 1 nodeid 1 proxy like the previous script.)
 
+- To run The bot
+   ```bash
+   ruby main.rb
+   ```
+
 ## [◉°] ScreenShot
 
 ![Screenshot 2025-03-27 at 15 05 12](https://github.com/user-attachments/assets/4ac70ff8-4752-49ae-b47d-7f0a5f4fec1d)
