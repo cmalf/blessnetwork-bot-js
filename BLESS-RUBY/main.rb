@@ -4,7 +4,7 @@
 ########################################################
 #                                                      #
 #  CODE  : Bless Network Bot v1.0.1(Exstension v0.1.8) #
-#  RUBY  : ruby 3.1.3p185 (2022-11-24 rev 1a6b16756e)  #
+#  RUBY  : ruby 3.4.2 (2025-02-15 revi d2930f8e7a)     #
 #  Author: CMALF (Docosa Jagocuan Group)               #
 #  TG    : https://t.me/Djagocuan                      #
 #  DC    : Docosa Jagocuan Group                       #
