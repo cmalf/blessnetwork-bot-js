@@ -185,7 +185,9 @@ def random_total_memory
   gb * 1024**3
 end
 
+# Modified send_request function with proper cleanup and handling of proxy resolution errors.
 def send_request(method, url, headers = {}, body = nil, proxy = nil)
+  curl = nil
   begin
     curl = Curl::Easy.new(url)
     curl.headers = headers
@@ -217,8 +219,16 @@ def send_request(method, url, headers = {}, body = nil, proxy = nil)
     response.body = curl.body_str
     response
   rescue Curl::Err::CurlError => e
-    puts "Error during request to #{url}: #{e.message}".colorize(:red)
+    # If proxy resolution fails, delay to allow DNS/cache issues to resolve.
+    if e.message.include?("getaddrinfo")
+      puts "Proxy resolution error during request to #{url}: #{e.message}. Retrying after short delay...".colorize(:red)
+      sleep 1
+    else
+      puts "Error during request to #{url}: #{e.message}".colorize(:red)
+    end
     nil
+  ensure
+    curl.close if curl
   end
 end
 
