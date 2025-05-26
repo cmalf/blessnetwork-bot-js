@@ -2,15 +2,10 @@
 
 A Node.js script to automate running blessnetwork node.
 
-> [!TIP]
-> ## The Bot is working now!
-> ## using ruby 3.4.2 (2025-02-15 revision d2930f8e7a)
-> ## and Curb to bypass Cloudflare
-
 > [!WARNING]
 > ## Ruby 'Work'
+> > ## PHP 'Work'
 > ## NodeJs 'Not'
-> ## PHP 'Not'
 
 > [!WARNING]
 > I am not responsible for any loss or damage caused by this bot. Use it at your own risk.
