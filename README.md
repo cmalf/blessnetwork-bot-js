@@ -4,7 +4,7 @@ A Node.js script to automate running blessnetwork node.
 
 > [!WARNING]
 > ## Ruby 'Work'
-> > ## PHP 'Work'
+> ## PHP 'Work'
 > ## NodeJs 'Not'
 
 > [!WARNING]
